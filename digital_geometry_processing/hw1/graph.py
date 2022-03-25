@@ -11,7 +11,7 @@ class Edge:
         self.v = v
         self.w = w
 
-    def other(self,u):
+    def other(self, u):
         if self.u == u:
             return self.v
         elif self.v == u:
@@ -36,21 +36,21 @@ class Graph:
             self.graph[k].append(egde2)
             self.graph[k].append(egde3)
 
-    def set_graph(self,edges):
+    def set_graph(self, edges):
         self.graph = defaultdict(list)
-        for u,v,w in edges:
-            edge = Edge(u,v,w)
+        for u, v, w in edges:
+            edge = Edge(u, v, w)
             self.graph[u].append(edge)
             self.graph[v].append(edge)
         self.n = len(self.graph)
 
-    def shortest_path(self,u,v):
-        dist = [10000000]*self.n
+    def shortest_path(self, u, v):
+        dist = [10000000] * self.n
         dist[u] = 0
-        min_q = [[0,u]]
-        path = [-1]*self.n
+        min_q = [[0, u]]
+        path = [-1] * self.n
         while min_q:
-            w,p = heapq.heappop(min_q)
+            w, p = heapq.heappop(min_q)
             if p == v:
                 break
             for edge in self.graph[p]:
@@ -58,12 +58,12 @@ class Graph:
                 if dist[q] > dist[p] + edge.w:
                     dist[q] = dist[p] + edge.w
                     path[q] = p
-                    heapq.heappush(min_q,[dist[q],q])
+                    heapq.heappush(min_q, [dist[q], q])
         ans = []
         vv = v
         faces = []
         while path[vv] != -1:
             ans.append(list(self.vertices[vv]))
-            faces.append([path[vv],vv])
+            faces.append([path[vv], vv])
             vv = path[vv]
-        return np.array(ans),np.array(faces)
+        return np.array(ans), np.array(faces)

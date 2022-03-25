@@ -1,6 +1,7 @@
 import numpy as np
 from collections import defaultdict
 
+
 def load_obj(path):
     vertices = []
     faces = []
@@ -43,10 +44,10 @@ def is_dun(a, b):
     return a.dot(b) < 0
 
 
-def colorMap(gaussCur,max,min):
+def colorMap(gaussCur, max, min):
     if gaussCur < 0:
         gaussCur = 1
-    return [gaussCur/max, 0.05, 0.05]
+    return [gaussCur / max, 0.05, 0.05]
 
 
 def angle(a, b):
@@ -113,13 +114,13 @@ class Mesh:
             self.angles[index1] += angle1
             self.angles[index2] += angle2
             self.norms[i] = n
-            edge12 = [index1,index2]
-            edge10 = [index1,index0]
-            edge02 = [index0,index2]
+            edge12 = [index1, index2]
+            edge10 = [index1, index0]
+            edge02 = [index0, index2]
             edge12.sort()
             edge10.sort()
             edge02.sort()
-            self.edge_cot_angle[tuple(edge12)] += 1/np.tan(angle0)
+            self.edge_cot_angle[tuple(edge12)] += 1 / np.tan(angle0)
             self.edge_cot_angle[tuple(edge10)] += 1 / np.tan(angle2)
             self.edge_cot_angle[tuple(edge02)] += 1 / np.tan(angle1)
             self.graph[index0].add(index1)
@@ -141,15 +142,10 @@ class Mesh:
         #     v = v / self.local_area[i]/4
         #     self.colors.append(length(v))
 
-
-
-
-
         for i in range(len(vertices)):
-            self.colors.append(1/self.local_area[i]*(2*np.pi-self.angles[i]))
+            self.colors.append(1 / self.local_area[i] * (2 * np.pi - self.angles[i]))
         print(self.colors)
 
         max_c = max(self.colors)
         min_c = min(self.colors)
-        self.colors = [colorMap(c,max_c,min_c) for c in self.colors]
-
+        self.colors = [colorMap(c, max_c, min_c) for c in self.colors]
