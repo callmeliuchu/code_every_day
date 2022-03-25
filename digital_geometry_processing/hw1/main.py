@@ -1,26 +1,35 @@
-from vispy import scene, io
+from vispy import scene
+from digital_geometry_processing.hw1.mesh import Mesh
 
-from digital_geometry_processing.hw1.graph import Graph
+
 
 canvas = scene.SceneCanvas(keys='interactive', show=True)
 view = canvas.central_widget.add_view()
 
-verts, faces, normals, nothing = io.read_mesh("/Users/liuchu/Digital_Geometry_Processing/code/example/hw1/alien.obj")
 
-mesh = scene.visuals.Mesh(vertices=verts, faces=faces, shading='smooth')
+
+
+
+mesh = Mesh(
+    "/Users/liuchu/code_every_day/digital_geometry_processing/hw2/PumpkinMesh.obj")
+
+# mesh = Mesh('/Users/liuchu/Digital_Geometry_Processing/code/example/hw4/cow.obj')
+
+# mesh = Mesh('/Users/liuchu/Digital_Geometry_Processing/code/example/hw3/bunny_random.obj')
+
+# mesh = Mesh('/Users/liuchu/Digital_Geometry_Processing/code/example/hw6/Bunny_head.obj')
+
+
+verts = mesh.vertices
+faces = mesh.faces
+colors = mesh.colors
+
+print(mesh.angles)
+
+mesh = scene.visuals.Mesh(vertices=verts, faces=faces, shading='smooth',
+                          vertex_colors=colors)
 
 view.add(mesh)
-
-
-bar = scene.visuals.ColorBar()
-view.add(bar)
-
-
-# G = Graph(verts, faces)
-# points, faces1 = G.shortest_path(4234, 9894)
-
-# line = scene.visuals.Line(pos=points, color=(0.8, 0.2, 0.1, 1))
-# view.add(line)
 
 view.camera = scene.TurntableCamera()
 view.camera.depth_value = 10
