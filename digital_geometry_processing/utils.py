@@ -13,3 +13,8 @@ def show_obj(mesh):
                               vertex_colors=colors)
 
     view.add(mesh)
+
+    view.camera = scene.TurntableCamera()
+    view.camera.depth_value = 10
+
+    canvas.app.run()
