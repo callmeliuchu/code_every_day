@@ -19,6 +19,8 @@ mesh = Mesh(
 
 # mesh = Mesh('/Users/liuchu/Digital_Geometry_Processing/code/example/hw6/Bunny_head.obj')
 
+# mesh = Mesh('/Users/liuchu/Digital_Geometry_Processing/code/example/hw1/alien.obj')
+
 
 verts = mesh.vertices
 faces = mesh.faces

@@ -46,7 +46,7 @@ def is_dun(a, b):
 def colorMap(gaussCur,max,min):
     if gaussCur < 0:
         gaussCur = 1
-    return [gaussCur, 0.2, 0.2]
+    return [gaussCur/max, 0.05, 0.05]
 
 
 def angle(a, b):
@@ -138,13 +138,16 @@ class Mesh:
         #         # print(self.edge_cot_angle[key])
         #         # print(vertices[i]-vertices[j])
         #         v += self.edge_cot_angle[key]*(vertices[i]-vertices[j])
-        #     v = v / self.local_area[i]
+        #     v = v / self.local_area[i]/4
         #     self.colors.append(length(v))
+
+
 
 
 
         for i in range(len(vertices)):
             self.colors.append(1/self.local_area[i]*(2*np.pi-self.angles[i]))
+        print(self.colors)
 
         max_c = max(self.colors)
         min_c = min(self.colors)
