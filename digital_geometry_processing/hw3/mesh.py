@@ -63,11 +63,12 @@ class Mesh:
         vertices, faces = load_obj(path)
         self.vertices = vertices
         self.faces = faces
-        self.norms = [None] * len(faces)
-        self.area = [None] * len(faces)
-        self.local_area = [0] * len(vertices)
-        self.angles = [0] * len(vertices)
-        self.v2graph = [[] for _ in range(len(vertices))]
+        lap = []
+        self.norms = [None] * len(self.faces)
+        self.area = [None] * len(self.faces)
+        self.local_area = [0] * len(self.vertices)
+        self.angles = [0] * len(self.vertices)
+        self.v2graph = [[] for _ in range(len(self.vertices))]
         self.face_angles = defaultdict(float)
         self.edge_cot_angle = defaultdict(float)
         self.graph = defaultdict(set)
@@ -75,6 +76,28 @@ class Mesh:
             index0 = faces[i][0]
             index1 = faces[i][1]
             index2 = faces[i][2]
+            self.graph[index0].add(index1)
+            self.graph[index0].add(index2)
+            self.graph[index1].add(index0)
+            self.graph[index1].add(index2)
+            self.graph[index2].add(index1)
+            self.graph[index2].add(index0)
+        l = 0.0001
+        for _ in range(40):
+            lap = self.get_lap()
+            for i in range(len(self.vertices)):
+                self.vertices[i] -= l*lap[i]
+        self.colors = [length(x) for x in lap]
+        max_c = max(self.colors)
+        min_c = min(self.colors)
+        self.colors = [colorMap(c, max_c, min_c) for c in self.colors]
+
+
+    def get_lap(self):
+        for i in range(len(self.faces)):
+            index0 = self.faces[i][0]
+            index1 = self.faces[i][1]
+            index2 = self.faces[i][2]
             v01 = self.vertices[index1] - self.vertices[index0]
             v12 = self.vertices[index2] - self.vertices[index1]
             v20 = self.vertices[index0] - self.vertices[index2]
@@ -85,7 +108,7 @@ class Mesh:
             s = 0.5 * length(n0)
             self.area[i] = s
             n = normal(n0)
-            for v in faces[i]:
+            for v in self.faces[i]:
                 self.v2graph[v].append(i)
             if is_dun(v01, -v20):
                 s0 = 0.5 * s
@@ -123,14 +146,9 @@ class Mesh:
             self.edge_cot_angle[tuple(edge12)] += 1 / np.tan(angle0)
             self.edge_cot_angle[tuple(edge10)] += 1 / np.tan(angle2)
             self.edge_cot_angle[tuple(edge02)] += 1 / np.tan(angle1)
-            self.graph[index0].add(index1)
-            self.graph[index0].add(index2)
-            self.graph[index1].add(index0)
-            self.graph[index1].add(index2)
-            self.graph[index2].add(index1)
-            self.graph[index2].add(index0)
-        self.colors = []
-        for i in range(len(vertices)):
+
+        lap = []
+        for i in range(len(self.vertices)):
             v = np.array([0.0,0.0,0.0])
             for j in self.graph[i]:
                 key = [i,j]
@@ -138,14 +156,8 @@ class Mesh:
                 key = tuple(key)
                 # print(self.edge_cot_angle[key])
                 # print(vertices[i]-vertices[j])
-                v += self.edge_cot_angle[key]*(vertices[i]-vertices[j])
+                v += self.edge_cot_angle[key]*(self.vertices[i]-self.vertices[j])
             v = v / self.local_area[i]/4
-            self.colors.append(length(v))
+            lap.append(v)
+        return lap
 
-        # for i in range(len(vertices)):
-        #     self.colors.append(1 / self.local_area[i] * (2 * np.pi - self.angles[i]))
-        # print(self.colors)
-
-        max_c = max(self.colors)
-        min_c = min(self.colors)
-        self.colors = [colorMap(c, max_c, min_c) for c in self.colors]
