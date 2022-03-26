@@ -46,8 +46,9 @@ def is_dun(a, b):
 
 
 def colorMap(x, max, min):
-    y = (x-min)/(max-min)*(2**24-1)
-    return rgb_int2rgb(y)
+    # y = (x-min)/(max-min)*(2**24-1)
+    # return rgb_int2rgb(y)
+    return [x / max * 1.5, 0.1, 0.2]
 
 
 def angle(a, b):
@@ -75,9 +76,6 @@ class Edge:
         self.pre_edge = None
         self.opposite = None
         self.face = None
-
-    def get_vector(self):
-        return self.v2.point - self.v1.point
 
     def __repr__(self):
         return '{} --> {}'.format(self.v1,self.v2)
@@ -166,18 +164,18 @@ class Mesh:
         self.local_area = [0]*len(self.vertices)
         for face in self.half_edge.faces:
             self.get_local_area(face.edge)
-        lap = self.cal_laplacian()
-        # print(lap)
-        # for _ in range(1000):
-        #     for i in range(len(self.vertices)):
-        #         self.vertices[i] -= 0.001*lap[i]
-        colors = [length(v) for v in lap]
-        print(colors)
-        max_c = max(colors)
-        min_c = min(colors)
-        colors = [colorMap(c,max_c,min_c) for c in colors]
-        print(colors)
-        self.colors = colors
+        for _ in range(500):
+            lap = self.cal_laplacian()
+            print(lap)
+            for i in range(len(self.vertices)):
+                self.vertices[i] += 0.2*lap[i]
+        # colors = [length(v) for v in lap]
+        # print(colors)
+        # max_c = max(colors)
+        # min_c = min(colors)
+        # colors = [colorMap(c,max_c,min_c) for c in colors]
+        # print(colors)
+        # self.colors = colors
 
 
     def cal_laplacian(self):
@@ -191,13 +189,16 @@ class Mesh:
             p = edge
             while True:
                 w = self.get_cot_edge(p)
-                res += w*p.get_vector()
+                res += w*self.get_vector(p)
                 p = p.opposite.next_edge
                 if p is edge:
                     break
-            res = res/4/self.local_area[p.v1.id]
+            res = res/4/self.local_area[edge.v1.id]
             ans.append(res)
         return ans
+
+    def get_vector(self,e):
+        return self.vertices[e.v2.id] - self.vertices[e.v1.id]
 
 
 
@@ -214,13 +215,13 @@ class Mesh:
 
 
     def get_angle(self,e1,e2):
-        return angle(e1.get_vector(),-e2.get_vector())
+        return angle(self.get_vector(e1),-self.get_vector(e2))
 
 
     def get_local_area(self,p):
-        v01 = p.get_vector()
-        v12 = p.next_edge.get_vector()
-        v20 = p.next_edge.next_edge.get_vector()
+        v01 = self.get_vector(p)
+        v12 = self.get_vector(p.next_edge)
+        v20 = self.get_vector(p.next_edge.next_edge)
         l01 = length(v01)
         l12 = length(v12)
         l20 = length(v20)
