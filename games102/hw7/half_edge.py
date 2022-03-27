@@ -161,14 +161,17 @@ class Mesh:
         self.faces = faces
         self.half_edge = HalfEdge(verts,faces)
         self.boundaries = self.half_edge.find_boundary()
+        if not self.boundaries:
+            self.boundaries = set(i*10 for i in range(len(self.vertices)//100))
         self.local_area = [0]*len(self.vertices)
         for face in self.half_edge.faces:
             self.get_local_area(face.edge)
-        for _ in range(400):
-            lap = self.cal_laplacian()
-            print(lap)
-            for i in range(len(self.vertices)):
-                self.vertices[i] += 0.01*lap[i]
+        A,B = self.cal_laplacian_mat()
+        A = np.array(A)
+        B = np.array(B)
+        print(B)
+        self.vertices = np.linalg.inv(A.transpose().dot(A)).dot(A.transpose().dot(B))
+
         # colors = [length(v) for v in lap]
         # print(colors)
         # max_c = max(colors)
@@ -177,25 +180,26 @@ class Mesh:
         # print(colors)
         # self.colors = colors
 
+    def cal_laplacian_mat(self):
+        A = [[0]*len(self.vertices) for _ in range(len(self.vertices))]
+        B = [[0]*3 for _ in range(len(self.vertices))]
 
-    def cal_laplacian(self):
-        ans = []
         for i in range(len(self.vertices)):
             if i in self.boundaries:
-                ans.append(np.array([0.0,0.0,0.0]))
+                A[i][i] = 1
+                B[i] = list(self.vertices[i])
                 continue
-            res = np.array([0.0,0.0,0.0])
             edge = self.half_edge.vertices[i].edge
             p = edge
             while True:
                 w = self.get_cot_edge(p)
-                res += w*self.get_vector(p)
+                A[i][p.v2.id] = w
                 p = p.opposite.next_edge
                 if p is edge:
                     break
-            res = res/4/self.local_area[edge.v1.id]
-            ans.append(res)
-        return ans
+            A[i][i] = -sum(A[i])
+        return A,B
+
 
     def get_vector(self,e):
         return self.vertices[e.v2.id] - self.vertices[e.v1.id]
