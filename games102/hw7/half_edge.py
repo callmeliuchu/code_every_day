@@ -164,7 +164,9 @@ class HalfEdge:
             if self.edges_cache[key].next_edge is None:
                 v1,v2 = key
                 mapping[v1] = v2
-                p = v1
+                if p is None:
+                    p = v1
+        p = list(self.find_boundary())[-1]
         ans = []
         s = 0
         if p is not None:
@@ -231,22 +233,24 @@ class Mesh:
         self.local_area = [0]*len(self.vertices)
         for face in self.half_edge.faces:
             self.get_local_area(face.edge)
+        self.get_minimal_face()
         uv,edges = self.get_uv_mapping()
         texture = np.flipud(imread('/Users/liuchu/code_every_day/games102/hw7/mona_lisa_sm.png'))
         texcoords = uv
         self.texture_filter = TextureFilter(texture, texcoords)
-        img_data = read_png('/Users/liuchu/code_every_day/games102/hw7/mona_lisa_sm.png')
-        m,n,depth = img_data.shape
-        self.colors = []
-        for u,v in uv:
-            print(u,v)
-            u = clamp(u)
-            v = clamp(v)
-            i = int((m-1)*u)
-            j = int((n-1)*v)
-            color = img_data[i][j]
-            color = color / 256
-            self.colors.append(color)
+        # img_data = read_png('/Users/liuchu/code_every_day/games102/hw7/mona_lisa_sm.png')
+        # m,n,depth = img_data.shape
+        # self.colors = []
+        # for u,v in uv:
+        #     # print(u,v)
+        #     u = clamp(u)
+        #     v = clamp(v)
+        #     i = int((m-1)*u)
+        #     j = int((n-1)*v)
+        #     color = img_data[i][j]
+        #     print(color)
+        #     color = color / 256
+        #     self.colors.append(color)
 
 
 
@@ -299,12 +303,12 @@ class Mesh:
             p = edge
             while True:
                 w = self.get_cot_edge(p)
-                A[i][p.v2.id] = w
+                A[i][p.v2.id] = 1
                 p = p.opposite.next_edge
                 if p is edge:
                     break
             A[i][i] = -sum(A[i])
-            # A[i] = list(np.array(A[i])/A[i][i])
+            A[i] = list(np.array(A[i])/A[i][i])
         return A
 
 
