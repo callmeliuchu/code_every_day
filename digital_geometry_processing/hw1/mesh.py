@@ -46,9 +46,11 @@ def is_dun(a, b):
 
 
 def colorMap(x, max, min):
-    # y = (x-min)/(max-min)*(2**24-1)
-    # return rgb_int2rgb(y)
-    return [x/max*1.5,0.1,0.2]
+    from vispy.color import Colormap
+    v = (x-min)/(max-min)
+    cm = Colormap(['b', 'r', 'r'])
+    return list(cm[v].rgb)[0]
+    # return [x/max*1.5,0.1,0.2]
 
 
 def angle(a, b):

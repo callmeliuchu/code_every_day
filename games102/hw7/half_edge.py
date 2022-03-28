@@ -1,6 +1,7 @@
 import  numpy as np
+from vispy.io import  read_png
 from digital_geometry_processing.utils import rgb_int2rgb,show_obj
-
+import matplotlib.pyplot as plt
 
 def load_obj(path):
     vertices = []
@@ -152,6 +153,66 @@ class HalfEdge:
                 ans.extend(key)
         return set(ans)
 
+    def get_boundary_edge(self):
+        mapping = {}
+        p = None
+        for key in self.edges_cache:
+            if self.edges_cache[key].next_edge is None:
+                v1,v2 = key
+                mapping[v1] = v2
+                p = v1
+        ans = []
+        s = 0
+        if p is not None:
+            q = p
+            before = None
+            while p in mapping:
+                if before is None:
+                    ans.append([p,s])
+                else:
+                    s += length(self.points[before]-self.points[p])
+                    ans.append([p,s])
+                before = p
+                p = mapping[p]
+                if p == q:
+                    break
+            s += length(self.points[ans[-1][0]]-self.points[q])
+        return ans,s
+
+    def boundary2square(self):
+        indexes, l = self.get_boundary_edge()
+        def f(x):
+            if 0 <= x <= l/4:
+                return [x,0]
+            elif l/4 <= x <= l/2:
+                return [l/4,x-l/4]
+            elif l/2 <= x <= 3*l/4:
+                return [3*l/4-x,l/4]
+            elif 3*l/4 <= x <= l:
+                return [0,l-x]
+        ans = {}
+        count = 0
+        for index,x in indexes:
+            ans[index] = [4*v/l for v in f(l*count/len(indexes))]
+            count += 1
+        for k,v in ans.items():
+            print(k,v)
+        return ans
+
+
+
+
+
+def clamp(val):
+    return val
+    # if val < 0:
+    #     return 0
+    # if val > 1:
+    #     return 1
+    # return val
+
+
+
 
 class Mesh:
 
@@ -166,7 +227,30 @@ class Mesh:
         self.local_area = [0]*len(self.vertices)
         for face in self.half_edge.faces:
             self.get_local_area(face.edge)
-        A,B = self.cal_laplacian_mat()
+        uv,edges = self.get_uv_mapping()
+        img_data = read_png('/Users/liuchu/code_every_day/games102/hw7/mona_lisa_sm.png')
+        m,n,depth = img_data.shape
+        self.colors = []
+        for u,v in uv:
+            print(u,v)
+            u = clamp(u)
+            v = clamp(v)
+            i = int((m-1)*u)
+            j = int((n-1)*v)
+            color = img_data[i][j]
+            color = color / 256
+            self.colors.append(color)
+
+
+
+
+
+    def get_minimal_face(self):
+        A = self.cal_laplacian_mat()
+        B = [[0] * 3 for _ in range(len(self.vertices))]
+        for i in range(len(self.vertices)):
+            if i in self.boundaries:
+                B[i] = list(self.vertices[i])
         A = np.array(A)
         B = np.array(B)
         print(B)
@@ -180,14 +264,29 @@ class Mesh:
         # print(colors)
         # self.colors = colors
 
+    def get_uv_mapping(self):
+        boundary_mapping = self.half_edge.boundary2square()
+        A = self.cal_laplacian_mat()
+        A = np.array(A)
+        B = [[0] * 2 for _ in range(len(self.vertices))]
+        for i in range(len(self.vertices)):
+            if i in boundary_mapping:
+                B[i] = boundary_mapping[i]
+        uv = np.linalg.inv(A.transpose().dot(A)).dot(A.transpose().dot(B))
+        print(uv)
+        edges = self.half_edge.edges_cache
+        return uv,edges.keys()
+
+
+
+
     def cal_laplacian_mat(self):
         A = [[0]*len(self.vertices) for _ in range(len(self.vertices))]
-        B = [[0]*3 for _ in range(len(self.vertices))]
+
 
         for i in range(len(self.vertices)):
             if i in self.boundaries:
                 A[i][i] = 1
-                B[i] = list(self.vertices[i])
                 continue
             edge = self.half_edge.vertices[i].edge
             p = edge
@@ -198,7 +297,8 @@ class Mesh:
                 if p is edge:
                     break
             A[i][i] = -sum(A[i])
-        return A,B
+            # A[i] = list(np.array(A[i])/A[i][i])
+        return A
 
 
     def get_vector(self,e):
@@ -258,7 +358,16 @@ class Mesh:
 
 
 
-
+def plot_img(x_y_arr,edges):
+    x = []
+    y = []
+    for i,j in x_y_arr:
+        x.append(i)
+        y.append(j)
+    for i,j in edges:
+        plt.plot([x_y_arr[i][0],x_y_arr[j][0]],[x_y_arr[i][1],x_y_arr[j][1]])
+    # plt.plot(x, y, 'ro')
+    plt.show()  # 这个智障的编辑器
 
 
 
@@ -278,16 +387,21 @@ def ff():
     #     [2,0,3]
     # ]
     #
-    path = '/Users/liuchu/code_every_day/games102/hw6/Nefertiti_face.obj'
+    path = '/Users/liuchu/code_every_day/games102/hw7/Nefertiti_face.obj'
     verts,faces = load_obj(path)
     he = HalfEdge(verts,faces)
-    print(he)
-    print(he.find_adj_verts(0))
-    print(he.faces[0])
-    print(he.faces[1])
-    print(he.find_boundary())
+
+    # print(he)
+    # print(he.find_adj_verts(0))
+    # print(he.faces[0])
+    # print(he.faces[1])
+    # print(he.find_boundary())
     mesh = Mesh(path)
+    x_y,edges = mesh.get_uv_mapping()
+    plot_img(x_y,edges)
     show_obj(mesh)
 
 
 ff()
+
+# plot_img()
