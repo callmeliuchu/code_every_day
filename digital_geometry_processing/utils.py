@@ -1,6 +1,7 @@
 from vispy import scene
 
 
+
 def show_obj(mesh):
     canvas = scene.SceneCanvas(keys='interactive', show=True)
     view = canvas.central_widget.add_view()
@@ -11,16 +12,20 @@ def show_obj(mesh):
         colors = mesh.colors
 
 
-        mesh = scene.visuals.Mesh(vertices=verts, faces=faces, shading='smooth',
-                              vertex_colors=colors)
+        m = scene.visuals.Mesh(vertices=verts, faces=faces, shading='smooth',
+                              vertex_colors=colors,color='white')
     else:
-        mesh = scene.visuals.Mesh(vertices=verts, faces=faces, shading='smooth',
-                                  )
+        m = scene.visuals.Mesh(vertices=verts, faces=faces, shading='smooth',
+                               color='white')
 
-    view.add(mesh)
+    if hasattr(mesh,'texture_filter'):
+
+        m.attach(mesh.texture_filter)
+
+    view.add(m)
 
     view.camera = scene.TurntableCamera()
-    view.camera.depth_value = 10
+    view.camera.depth_value = 20
 
     canvas.app.run()
 

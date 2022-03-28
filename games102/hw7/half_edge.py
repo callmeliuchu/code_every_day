@@ -2,6 +2,10 @@ import  numpy as np
 from vispy.io import  read_png
 from digital_geometry_processing.utils import rgb_int2rgb,show_obj
 import matplotlib.pyplot as plt
+import numpy as np
+from vispy.io import imread
+from vispy.scene.visuals import Mesh
+from vispy.visuals.filters import TextureFilter
 
 def load_obj(path):
     vertices = []
@@ -228,6 +232,9 @@ class Mesh:
         for face in self.half_edge.faces:
             self.get_local_area(face.edge)
         uv,edges = self.get_uv_mapping()
+        texture = np.flipud(imread('/Users/liuchu/code_every_day/games102/hw7/mona_lisa_sm.png'))
+        texcoords = uv
+        self.texture_filter = TextureFilter(texture, texcoords)
         img_data = read_png('/Users/liuchu/code_every_day/games102/hw7/mona_lisa_sm.png')
         m,n,depth = img_data.shape
         self.colors = []
