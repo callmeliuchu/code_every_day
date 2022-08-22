@@ -28,7 +28,7 @@ def load_obj(path):
 def cross(a, b):
     ax, ay, az = a
     bx, by, bz = b
-    return np.array([ay * bz - az * by, ax * bz - az * bx, ax * by - ay * bx])
+    return np.array([ay * bz - az * by, -ax * bz + az * bx, ax * by - ay * bx])
 
 
 def length(a):
@@ -185,7 +185,7 @@ class HalfEdge:
             s += length(self.points[ans[-1][0]]-self.points[q])
         return ans,s
 
-    def boundary2square(self):
+    def boundary2square(self,scale):
         indexes, l = self.get_boundary_edge()
         def f(x):
             if 0 <= x <= l/4:
@@ -199,11 +199,15 @@ class HalfEdge:
         ans = {}
         count = 0
         for index,x in indexes:
-            ans[index] = [4*v/l for v in f(l*count/len(indexes))]
+            ans[index] = [4*v/l*scale for v in f(l*count/len(indexes))]
             count += 1
         for k,v in ans.items():
             print(k,v)
         return ans
+
+
+    def boundary2cycle(self,r):
+        indexes, l = self.get_boundary_edge()
 
 
 
@@ -218,7 +222,7 @@ def clamp(val):
     # return val
 
 
-
+from collections import defaultdict
 
 class Mesh:
 
@@ -226,6 +230,20 @@ class Mesh:
         verts,faces = load_obj(path)
         self.vertices = verts
         self.faces = faces
+
+        self.graph = defaultdict(set)
+        for i in range(len(faces)):
+            index0 = faces[i][0]
+            index1 = faces[i][1]
+            index2 = faces[i][2]
+            self.graph[index0].add(index1)
+            self.graph[index0].add(index2)
+            self.graph[index1].add(index0)
+            self.graph[index1].add(index2)
+            self.graph[index2].add(index1)
+            self.graph[index2].add(index0)
+
+
         self.half_edge = HalfEdge(verts,faces)
         self.boundaries = self.half_edge.find_boundary()
         if not self.boundaries:
@@ -235,29 +253,65 @@ class Mesh:
             self.get_local_area(face.edge)
         # self.get_minimal_face()
         self.cots = {}
-        uv,edges,laplacian = self.get_uv_mapping()
         texture = np.flipud(imread('/Users/liuchu/code_every_day/games102/hw7/mona_lisa_sm.png'))
-        texcoords = uv
+
 
         localcoord = []
-
-        for v0,v1,v2 in self.faces:
+        W = [[0]*len(self.vertices) for _ in range(len(self.vertices))]
+        self.total_s = 0
+        for i,(v0,v1,v2) in enumerate(self.faces):
             p0 = self.vertices[v0]
             p1 = self.vertices[v1]
             p2 = self.vertices[v2]
+
+            angle0 = angle(p1-p0,p2-p0)
+            self.total_s += 0.5 * length(cross(p1-p0,p2-p0))
+
+            angle1 = angle(p0-p1,p2-p1)
+            angle2 = angle(p0-p2,p1-p2)
+            self.cots[(i,0)] = 1.0 / np.tan(angle2)
+            self.cots[(i,1)] = 1.0 / np.tan(angle0)
+            self.cots[(i,2)] = 1.0 / np.tan(angle1)
+            W[v1][v2] = 1/np.tan(angle0)
+            W[v2][v0] = 1/np.tan(angle1)
+            W[v0][v1] = 1/np.tan(angle2)
+
             e = p1 - p0
             e2 = p2 - p1
             e2 = normal(e2)
             x_ = normal(e)
             n = cross(x_,e2)
+            n = normal(n)
             y_ = cross(n,x_)
             e1 = p2 - p0
             localcoord.append([0,0,length(e),0,dot(e1,x_),dot(e1,y_)])
 
 
-        lts = []
+        uv,edges,laplacian = self.get_uv_mapping()
+
+        laplacian = [[0]*len(self.vertices) for _ in range(len(self.vertices))]
+        for v_idx in self.graph:
+            ww = 0
+            for j_idx in self.graph[v_idx]:
+                w = W[v_idx][j_idx] + W[j_idx][v_idx]
+                ww += w
+                laplacian[v_idx][j_idx] = w
+            laplacian[v_idx][v_idx] = -ww
+            # for j in range(len(laplacian[v_idx])):
+            #     laplacian[v_idx][j] /= ww
+
+        # boundary_mapping = self.half_edge.boundary2square()
+        # B = [[0] * 2 for _ in range(len(self.vertices))]
+        # for i in range(len(self.vertices)):
+        #     if i in boundary_mapping:
+        #         B[i] = boundary_mapping[i]
+        # uv = np.linalg.inv(laplacian).dot(B)
+        # plot_img(uv, edges)
+
+
         for _ in range(100):
 
+            lts = []
             for i in range(len(self.faces)):
                 v0,v1,v2 = self.faces[i]
                 P = np.array([
@@ -268,14 +322,14 @@ class Mesh:
                     [localcoord[i][2]-localcoord[i][0],localcoord[i][4]-localcoord[i][0]],
                     [localcoord[i][3]-localcoord[i][1],localcoord[i][5]-localcoord[i][1]]
                 ])
-                J = np.multiply(P,np.linalg.inv(S))
+                J = P.dot(np.linalg.inv(S))
                 u,s,v = np.linalg.svd(J)
 
-                R = np.multiply(u,v.T)
+                R = u.dot(v)
                 if np.linalg.det(R) < 0:
                     u[0][1] = -u[0][1]
                     u[1][1] = -u[1][1]
-                    R = np.multiply(u,v.T)
+                    R = u.dot(v)
                 lts.append(R)
 
             b = np.zeros((len(self.vertices),2))
@@ -287,29 +341,24 @@ class Mesh:
                                localcoord[i][5] - localcoord[i][3]]]).T
                 e2 = np.array([[-localcoord[i][4],-localcoord[i][5]]]).T
 
-                b0 = (self.cots.get((v0,v1),0) * lts[i].dot(e0)).T
+                b0 = (self.cots.get((i,0),0) * lts[i].dot(e0)).T
                 b[v0] -= b0[0]
                 b[v1] += b0[0]
 
-                b1 = (self.cots.get((v1,v2),0) * lts[i].dot(e1)).T
+                b1 = (self.cots.get((i,1),0) * lts[i].dot(e1)).T
                 b[v1] -= b1[0]
                 b[v2] += b1[0]
 
-                b2 = (self.cots.get((v2,v0),0) * lts[i].dot(e2)).T
-                b[v2]  -= b2[0]
-                b[v0]  += b2[0]
+                b2 = (self.cots.get((i,2),0)* lts[i].dot(e2)).T
+                b[v2] -= b2[0]
+                b[v0] += b2[0]
+            # uv = np.linalg.inv(laplacian).dot(b)
             uv = np.linalg.inv(laplacian).dot(b)
 
         plot_img(uv,edges)
 
 
-
-
-
-
-
-
-        self.texture_filter = TextureFilter(texture, texcoords)
+        self.texture_filter = TextureFilter(texture, uv)
 
 
 
@@ -317,7 +366,7 @@ class Mesh:
 
 
     def get_minimal_face(self):
-        A = self.cal_laplacian_mat()
+        A,AMat= self.cal_laplacian_mat()
         B = [[0] * 3 for _ in range(len(self.vertices))]
         for i in range(len(self.vertices)):
             if i in self.boundaries:
@@ -336,8 +385,8 @@ class Mesh:
         # self.colors = colors
 
     def get_uv_mapping(self):
-        boundary_mapping = self.half_edge.boundary2square()
-        A = self.cal_laplacian_mat()
+        boundary_mapping = self.half_edge.boundary2square(np.sqrt(self.total_s))
+        A,AMat = self.cal_laplacian_mat()
         A = np.array(A)
         B = [[0] * 2 for _ in range(len(self.vertices))]
         for i in range(len(self.vertices)):
@@ -346,14 +395,16 @@ class Mesh:
         uv = np.linalg.inv(A.transpose().dot(A)).dot(A.transpose().dot(B))
         print(uv)
         edges = self.half_edge.edges_cache
-        return uv,edges.keys(),A
+        return uv,edges.keys(),np.array(AMat)
 
 
     def cal_laplacian_mat(self):
         A = [[0]*len(self.vertices) for _ in range(len(self.vertices))]
+        AMat = [[0] * len(self.vertices) for _ in range(len(self.vertices))]
         for i in range(len(self.vertices)):
             if i in self.boundaries:
                 A[i][i] = 1
+                AMat[i][i] = 1
                 continue
             edge = self.half_edge.vertices[i].edge
             p = edge
@@ -361,15 +412,16 @@ class Mesh:
                 w = self.get_cot_edge(p)
                 i0 = p.v1.id
                 i1 = p.v2.id
-                self.cots[(i0,i1)] = w
-                self.cots[(i1,i0)] = w
-                A[i][p.v2.id] = 1
+                A[i][p.v2.id] = w
+                AMat[i][p.v2.id] = w
                 p = p.opposite.next_edge
                 if p is edge:
                     break
             A[i][i] = -sum(A[i])
+            AMat[i][i] = -sum(AMat[i])
+            # AMat[i] = list(np.array(AMat[i]) / AMat[i][i])
             A[i] = list(np.array(A[i])/A[i][i])
-        return A
+        return A,AMat
 
 
     def get_vector(self,e):
