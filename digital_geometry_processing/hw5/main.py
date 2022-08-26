@@ -1,8 +1,9 @@
 import  numpy as np
 from vispy.io import  read_png
-from digital_geometry_processing.utils import rgb_int2rgb,show_obj
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.sparse import csc_matrix, spmatrix
+from scipy.sparse.linalg import spsolve
 from vispy.io import imread
 from vispy.scene.visuals import Mesh
 from vispy.visuals.filters import TextureFilter
@@ -108,11 +109,11 @@ class Mesh:
 
         localcoord = []
         total_s = 0
-        for i, (v2, v0, v1) in enumerate(self.faces):
+        for i, (v0, v1, v2) in enumerate(self.faces):
             p0 = self.vertices[v0]
             p1 = self.vertices[v1]
             p2 = self.vertices[v2]
-            print('p0p1p2',p0,p1,p2)
+            # print('p0p1p2',p0,p1,p2)
             total_s += 0.5 * length(cross(p1 - p0, p2 - p0))
             e = p1 - p0
             e2 = p2 - p1
@@ -163,31 +164,35 @@ class Mesh:
         uv = np.linalg.inv(laplacian0.transpose().dot(laplacian0)).dot(laplacian0.transpose().dot(B))
         # uv = np.linalg.inv(laplacian0).dot(B)
         # uv = np.array(uv_load())
-        print('uvvv')
-        print(uv)
+        # print('uvvv')
+        # print(uv)
         edges = self.edge2faceid.keys()
-        plot_img(uv, edges)
+        # plot_img(uv, edges)
 
+        def cotan(p1,p2):
+            return  dot(p1,p2) / length(cross(p1,p2))
         # cot
         W = np.zeros((len(self.vertices),len(self.vertices)))
         total_s = 0
-        for i, (v2, v0, v1) in enumerate(self.faces):
+        for i, (v0, v1, v2) in enumerate(self.faces):
             p0 = self.vertices[v0]
             p1 = self.vertices[v1]
             p2 = self.vertices[v2]
-            angle0 = angle(p1 - p0, p2 - p0)
-            angle1 = angle(p0 - p1, p2 - p1)
-            angle2 = angle(p0 - p2, p1 - p2)
+            cotan0 = cotan(p1 - p0, p2 - p0)
+            cotan1 = cotan(p0 - p1, p2 - p1)
+            cotan2 = cotan(p0 - p2, p1 - p2)
             total_s += 0.5 * length(cross(p1 - p0, p2 - p0))
             # if v0 not in boundary_vids or v1 not in boundary_vids:
-            self.cots[(i, 0)] = 1.0 / np.tan(angle2)
-            W[v0][v1] = 1.0 / np.tan(angle2)
+            self.cots[(i, 0)] =  cotan2
+            W[v0][v1] =  cotan2
             # if v1 not in boundary_vids or v2 not in boundary_vids:
-            self.cots[(i, 1)] = 1.0 / np.tan(angle0)
-            W[v1][v2] = 1.0 / np.tan(angle0)
+            self.cots[(i, 1)] =  cotan0
+            W[v1][v2] =  cotan0
             # if v2 not in boundary_vids or v0 not in boundary_vids:
-            self.cots[(i, 2)] = 1.0 / np.tan(angle1)
-            W[v2][v0] = 1.0 / np.tan(angle1)
+            self.cots[(i, 2)] = cotan1
+            W[v2][v0] = cotan1
+
+
         laplacian = np.zeros((len(self.vertices), len(self.vertices)))
 
         for idx in self.graph:
@@ -199,12 +204,34 @@ class Mesh:
                 laplacian[idx][u] = -w
             laplacian[idx][idx] = ww
 
-        laplacian = np.array(mat_load())
+
+
+
+        ans = []
+        for arr in laplacian:
+            s = ' '.join([str(float(v)) for v in arr])
+            ans.append(s)
+        # print('\n'.join(ans))
+
+        # laplaciankk = np.array(mat_load())
+
+        # print(np.sum((laplaciankk-laplacian)**2))
+
+        # for i in range(len(laplacian)):
+        #     for j in range(len(laplacian[0])):
+        #         if abs(laplacian[i][j] -laplaciankk[i][j]) > 0.00001:
+        #             print(i,j,laplacian[i][j]-laplaciankk[i][j])
         # iterator
+
+        # laplacian = laplaciankk
+
+
+
+        # XXX = np.linalg.inv(laplacian.transpose().dot(laplacian))
         for _ in range(10):
             lts = []
             for i in range(len(self.faces)):
-                v2, v0, v1 = self.faces[i]
+                v0, v1, v2 = self.faces[i]
                 P = np.array([
                     [uv[v1][0]-uv[v0][0],uv[v2][0]-uv[v0][0]],
                     [uv[v1][1]-uv[v0][1],uv[v2][1]-uv[v0][1]]
@@ -234,7 +261,7 @@ class Mesh:
 
             b = np.zeros((len(self.vertices),2))
             for i in range(len(self.faces)):
-                v2, v0, v1 = self.faces[i]
+                v0, v1, v2 = self.faces[i]
 
                 e0 = np.array([localcoord[i][2] , localcoord[i][3]])
                 e1 = np.array([localcoord[i][4] - localcoord[i][2],
@@ -263,7 +290,8 @@ class Mesh:
 
                 # print('cots2',self.cots.get((i,2),0))
                 # print('b2', b2)
-            uv = np.linalg.inv(laplacian.transpose().dot(laplacian)).dot(laplacian.transpose().dot(b))
+            uv = spsolve(csc_matrix(laplacian),b)
+            # uv = XXX.dot(laplacian.transpose().dot(b))
             # uv = np.linalg.inv(laplacian).dot(b)
             # print('A ',np.linalg.det(laplacian))
             # print('b  ',b)

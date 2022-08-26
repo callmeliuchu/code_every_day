@@ -140,14 +140,14 @@ class HalfEdge:
         p = edge
         ans = []
         # while edge is not None and edge is not p:
-        #     ans.append(edge.v2)
+        #     ans.txt.append(edge.v2)
         #     edge = edge.opposite.next_edge
         # while True:
         #     if p.next_edge is None and p is not edge:
         #         break
         #     p = p.next_edge.next_edge
         #     p = p.opposite
-        #     ans.append(p.v2)
+        #     ans.txt.append(p.v2)
         return ans
 
     def find_boundary(self):

@@ -1,21 +1,14 @@
-def uv_load():
-    ans = []
-    with open('uv','r') as f:
-        for line in f.readlines():
-            arr = line.strip().split(' ')
-            a = float(arr[0])
-            b = float(arr[-1])
-            ans.append([a,b])
+import numpy as np
+from scipy.sparse import csc_matrix,spmatrix
+from scipy.sparse.linalg import spsolve,inv
 
+row = np.array([0, 2, 2, 0, 1, 2, 0])
+col = np.array([0, 0, 1, 2, 2, 2, 0])
+data = np.array([1, 2, 3, 4, 5, 6, 5])
+sp_A = csc_matrix((data, (row, col)), shape=(3, 3), dtype=float)
+print(sp_A.toarray())
+print(csc_matrix(sp_A.toarray()))
 
-
-
-def mat_load():
-    ans = []
-    with open('mat','r') as f:
-        for line in f.readlines():
-            arr = line.strip().split(' ')
-            ans.append([float(v) for v in arr])
-    return ans
-
-print(mat_load())
+b = np.array([[4, 5, 6],[4, 5, 6]]).T
+x = spsolve(sp_A, b)
+print(type(x))

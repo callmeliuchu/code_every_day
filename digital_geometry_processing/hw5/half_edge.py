@@ -211,7 +211,13 @@ class HalfEdge:
 
 
 
-
+def mat_load():
+    ans = []
+    with open('mat','r') as f:
+        for line in f.readlines():
+            arr = line.strip().split(' ')
+            ans.append([float(v) for v in arr])
+    return ans
 
 def clamp(val):
     return val
@@ -308,7 +314,7 @@ class Mesh:
         # uv = np.linalg.inv(laplacian).dot(B)
         # plot_img(uv, edges)
 
-
+        laplacian = np.array(mat_load())
         for _ in range(100):
 
             lts = []
