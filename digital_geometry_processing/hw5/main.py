@@ -127,6 +127,7 @@ class Mesh:
 
         # uv
         radius = np.sqrt(total_s / np.pi)
+        radius = 100
         boundary_link = defaultdict(list)
         boundary_vids = set()
         for key in self.edge2faceid:
@@ -167,7 +168,7 @@ class Mesh:
         # print('uvvv')
         # print(uv)
         edges = self.edge2faceid.keys()
-        # plot_img(uv, edges)
+        plot_img(uv, edges)
 
         def cotan(p1,p2):
             return  dot(p1,p2) / length(cross(p1,p2))
@@ -228,7 +229,7 @@ class Mesh:
 
 
         # XXX = np.linalg.inv(laplacian.transpose().dot(laplacian))
-        for _ in range(10):
+        for _ in range(5):
             lts = []
             for i in range(len(self.faces)):
                 v0, v1, v2 = self.faces[i]

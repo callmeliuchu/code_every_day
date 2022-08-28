@@ -42,5 +42,5 @@ class Mesh:
 if __name__ == '__main__':
 
     mesh = Mesh(
-        "/Users/liuchu/Digital_Geometry_Processing/code/build/ans.obj")
+        "/Users/liuchu/Digital_Geometry_Processing/code/build/deformation.obj")
     show_obj(mesh)

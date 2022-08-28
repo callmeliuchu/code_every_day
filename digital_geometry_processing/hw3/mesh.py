@@ -82,15 +82,15 @@ class Mesh:
             self.graph[index1].add(index2)
             self.graph[index2].add(index1)
             self.graph[index2].add(index0)
-        l = 0.0001
-        for _ in range(40):
-            lap = self.get_lap()
-            for i in range(len(self.vertices)):
-                self.vertices[i] -= l*lap[i]
-        self.colors = [length(x) for x in lap]
-        max_c = max(self.colors)
-        min_c = min(self.colors)
-        self.colors = [colorMap(c, max_c, min_c) for c in self.colors]
+        # l = 0.0001
+        # for _ in range(40):
+        #     lap = self.get_lap()
+        #     for i in range(len(self.vertices)):
+        #         self.vertices[i] -= l*lap[i]
+        # self.colors = [length(x) for x in lap]
+        # max_c = max(self.colors)
+        # min_c = min(self.colors)
+        # self.colors = [colorMap(c, max_c, min_c) for c in self.colors]
 
 
     def get_lap(self):
