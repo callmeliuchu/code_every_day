@@ -135,9 +135,11 @@ def cal(mesh1,mesh2):
         xx[i] = np.array([p2_p1[0],p0_p2[0],p1_p0[0]])
         yy[i] = np.array([-p2_p1[1], -p0_p2[1], -p1_p0[1]])
 
-
-        u = np.array([p0[0],p1[0],p2[0]])
-        v = np.array([p0[1], p1[1], p2[1]])
+        _p0 = mesh2.vertices[index0]
+        _p1 = mesh2.vertices[index1]
+        _p2 = mesh2.vertices[index2]
+        u = np.array([_p0[0],_p1[0],_p2[0]])
+        v = np.array([_p0[1], _p1[1], _p2[1]])
 
         J = np.array([
             [yy[i].dot(u)/(2*area[i]),xx[i].dot(u)/(2*area[i])],
@@ -168,8 +170,50 @@ def cal(mesh1,mesh2):
                     A[2 * face[m]+1][2 * face[n]+1] = xx[i][m] * yy[i][n] / (2 * area[i] * area[i])
 
     t = 0
+    b = [0]*(2*nv-2)
     while t < 1.0:
-        pass
+        for k in range(len(mesh1.faces)):
+            theta_t = angle[k] * t
+            R = np.array([
+                [np.cos(theta_t),-np.sin(theta_t)],
+                [np.sin(theta_t),np.cos(theta_t)]
+            ])
+            A = R.dot((1-t)*np.identity(2)+t*S[k])
+            face = mesh1.faces[k]
+            for i in range(3):
+                for j in range(3):
+                    if face[i] != nv - 1 and face[j] == nv - 1:
+                        b[2*face[i]] -= yy[k][i] * yy[k][j] * u0 / (2*area[k]*area[k])
+                        b[2 * face[i]] -= xx[k][i] * xx[k][j] * u0 / (2 * area[k] * area[k])
+                        b[2 * face[i]+1] -= yy[k][i] * yy[k][j] * v0 / (2 * area[k] * area[k])
+                        b[2 * face[i]+1] -= xx[k][i] * xx[k][j] * v0 / (2 * area[k] * area[k])
+
+                if face[k] != nv - 1:
+                    b[2 * face[i]] += yy[k][i] * A[0][0] / area[k]
+                    b[2 * face[i]] += xx[k][i] * A[0][1] / area[k]
+                    b[2 * face[i] + 1] += yy[k][i] * A[1][0] / area[k]
+                    b[2 * face[i] + 1] += xx[k][i] * A[1][1] / area[k]
+
+
+            X = spsolve(csc_matrix(A),np.array(b))
+
+            for i in range(len(mesh1.vertices)):
+                if i != nv - 1:
+                    mesh1.vertices[i] = [X[2*i],X[2*i+1],0]
+
+            with open('result/{}.obj','a+') as f:
+                for vec in mesh1.vertices:
+                    s = ' '.join([str(v) for v in vec])
+                    f.write(s+'\n')
+
+            t += 0.1
+
+
+
+
+mesh1 = Mesh('0.000000.obj')
+mesh2 = Mesh('1.000000.obj')
+cal(mesh1,mesh2)
 
 
 
@@ -185,7 +229,5 @@ def cal(mesh1,mesh2):
 
 
 
-#
-#
-# path = 'Nefertiti_face.obj'
-# mesh = Mesh(path)
+
+
