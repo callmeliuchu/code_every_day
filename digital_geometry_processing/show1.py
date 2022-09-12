@@ -8,7 +8,7 @@ from vispy.visuals.filters import ShadingFilter, WireframeFilter
 
 
 parser = argparse.ArgumentParser()
-default_mesh = load_data_file('/Users/liuchu/Digital_Geometry_Processing/code/build/ans.obj')
+default_mesh = load_data_file('/Users/liuchu/code_every_day/digital_geometry_processing/hw8/result/99.obj')
 parser.add_argument('--mesh', default=default_mesh)
 parser.add_argument('--shininess', default=100)
 parser.add_argument('--wireframe-width', default=1)
