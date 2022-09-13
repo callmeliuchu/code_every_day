@@ -42,5 +42,7 @@ class Mesh:
 if __name__ == '__main__':
 
     mesh = Mesh(
-        "/Users/liuchu/code_every_day/digital_geometry_processing/hw8/result/7.obj")
+        "/Users/liuchu/Digital_Geometry_Processing/code/build/drag_res.obj")
+    mesh = Mesh(
+        "/Users/liuchu/Digital_Geometry_Processing/code/example/hw9/dragon.obj")
     show_obj(mesh)
